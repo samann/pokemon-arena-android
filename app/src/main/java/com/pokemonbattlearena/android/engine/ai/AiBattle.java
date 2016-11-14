@@ -12,11 +12,12 @@ public class AiBattle extends Battle {
         super(humanPlayer, aiPlayer);
       //  BattlePokemonTeam aiPokemon = this.getOpponent().getBattlePokemonTeam();
       //  BattlePokemonTeam playerPokemon = this.getSelf().getBattlePokemonTeam();
-        this.intelligence = new MiniMax(this.getOpponent(), this.getSelf());
+        this.intelligence = new MiniMax(this.getOpponent(), this.getSelf(), this);
     }
 
     public Move showIntelligence() {
+        return null;
 
-        return intelligence.choose().getValue().getMove();
+        //return intelligence.choose().getValue().getMove();
     }
 }

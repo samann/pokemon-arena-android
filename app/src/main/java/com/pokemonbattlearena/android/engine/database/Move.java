@@ -81,6 +81,33 @@ public class Move {
     @DatabaseField(columnName = CRASH_FIELD_NAME)
     private int crash;
 
+    public Move(Move other) {
+        this.id = other.id;
+        this.name = other.name;
+        this.description = other.description;
+        this.type1 = other.type1;
+        this.category = other.category;
+        this.power = other.power;
+        this.accuracy = other.accuracy;
+        this.powerPoints = other.powerPoints;
+        this.statusEffect = other.statusEffect;
+        this.statusEffectChance = other.statusEffectChance;
+        this.stageChangeStat = other.stageChangeStat;
+        this.stageChange = other.stageChange;
+        this.stageChangeChance = other.stageChangeChance;
+        this.canFlinch = other.canFlinch;
+        this.minHits = other.minHits;
+        this.maxHits = other.maxHits;
+        this.chargingTurns = other.chargingTurns;
+        this.rechargeTurns = other.rechargeTurns;
+        this.selfHeal = other.selfHeal;
+        this.selfHealType = other.selfHealType;
+        this.selfHealAmount = other.selfHealAmount;
+        this.recoil = other.recoil;
+        this.recoilAmount = other.recoilAmount;
+        this.crash = other.crash;
+    }
+
     public Move() {
         // Constructor for ORMLite
     }

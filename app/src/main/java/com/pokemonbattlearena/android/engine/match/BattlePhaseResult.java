@@ -7,7 +7,14 @@ public class BattlePhaseResult {
 
     private List<CommandResult> commandResults;
 
-    BattlePhaseResult() {
+    public BattlePhaseResult(BattlePhaseResult other) {
+        this.commandResults = new ArrayList<>();
+        for (CommandResult cmdr: other.getCommandResults()) {
+            this.commandResults.add(cmdr.makeCopy());
+        }
+    }
+
+    public BattlePhaseResult() {
         this.commandResults = new ArrayList<>();
     }
 

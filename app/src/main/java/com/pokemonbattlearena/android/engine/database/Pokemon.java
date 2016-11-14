@@ -3,7 +3,10 @@ package com.pokemonbattlearena.android.engine.database;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static com.pokemonbattlearena.android.engine.ai.AIUtil.nullToEmpty;
 
 @DatabaseTable(tableName = "pokemons")
 public class Pokemon {
@@ -44,6 +47,25 @@ public class Pokemon {
     private int legendary;
 
     protected List<Move> activeMoveList;
+
+    public Pokemon(Pokemon other) {
+        this.id = other.id;
+        this.name = other.name;
+        this.type1 = other.type1;
+        this.type2 = other.type2;
+        this.hp = other.hp;
+        this.attack = other.attack;
+        this.defense = other.defense;
+        this.specialAttack = other.specialAttack;
+        this.specialDefense = other.specialDefense;
+        this.speed = other.speed;
+        this.legendary = other.legendary;
+      //  this.activeMoveList = other.activeMoveList;
+        this.activeMoveList = new ArrayList<>();
+        for (Move move: nullToEmpty(other.getActiveMoveList())) {
+            this.activeMoveList.add(new Move(move));
+        }
+    }
 
     public Pokemon() {
         // Constructor for ORMLite

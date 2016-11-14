@@ -10,6 +10,15 @@ public class BattlePokemonTeam {
 
     public List<BattlePokemon> battlePokemons;
 
+    //Deep copy constructor
+    public BattlePokemonTeam(BattlePokemonTeam other) {
+        this.battlePokemons = new ArrayList<>();
+        for (BattlePokemon bPokemon: other.getBattlePokemons()) {
+            this.battlePokemons.add(new BattlePokemon(bPokemon));
+
+        }
+    }
+
     public BattlePokemonTeam(PokemonTeam pokemonTeam) {
 
         this.battlePokemons = new ArrayList<>();

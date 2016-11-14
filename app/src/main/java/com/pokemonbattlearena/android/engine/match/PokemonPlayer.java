@@ -5,6 +5,11 @@ public class PokemonPlayer {
     private PokemonTeam pokemonTeam;
     private String playerId;
 
+    public PokemonPlayer(PokemonPlayer other) {
+        this.pokemonTeam = new PokemonTeam(other.getPokemonTeam());
+        this.playerId = other.playerId;
+    }
+
     public PokemonPlayer() {
 
     }

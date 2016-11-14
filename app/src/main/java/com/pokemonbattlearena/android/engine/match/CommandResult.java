@@ -1,12 +1,14 @@
 package com.pokemonbattlearena.android.engine.match;
 
-public class CommandResult {
+public abstract class CommandResult {
 
     TargetInfo targetInfo;
 
-    protected CommandResult() { }
+    public CommandResult() { }
 
     public TargetInfo getTargetInfo() {
         return targetInfo;
     }
+
+    public abstract CommandResult makeCopy();
 }

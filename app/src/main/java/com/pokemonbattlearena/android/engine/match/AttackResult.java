@@ -29,6 +29,27 @@ public class AttackResult extends CommandResult {
     private int speedStageChange;
     private int critStageChange;
 
+    public AttackResult(AttackResult other) {
+        this.moveUsedId = other.moveUsedId;
+        this.damageDone = other.damageDone;
+        this.statusEffectApplied = other.statusEffectApplied;
+        this.statusEffectTurns = other.statusEffectTurns;
+        this.confused = other.confused;
+        this.confusedTurns = other.confusedTurns;
+        this.flinched = other.flinched;
+        this.chargingTurns = other.chargingTurns;
+        this.rechargingTurns = other.rechargingTurns;
+        this.healingDone = other.healingDone;
+        this.recoilTaken = other.recoilTaken;
+        this.fainted = other.fainted;
+        this.attackStageChange = other.attackStageChange;
+        this.defenseStageChange = other.defenseStageChange;
+        this.spAttackStageChange = other.spAttackStageChange;
+        this.spDefenseStageChange = other.spDefenseStageChange;
+        this.speedStageChange = other.speedStageChange;
+        this.critStageChange = other.critStageChange;
+    }
+
     private AttackResult(Builder builder) {
 
         super();
@@ -245,5 +266,10 @@ public class AttackResult extends CommandResult {
             Log.i(TAG, "Building AttackResult");
             return new AttackResult(this);
         }
+    }
+
+    @Override
+    public CommandResult makeCopy() {
+        return new AttackResult(this);
     }
 }

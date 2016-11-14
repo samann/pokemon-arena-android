@@ -1,5 +1,9 @@
 package com.pokemonbattlearena.android.engine.ai;
 
+import com.pokemonbattlearena.android.engine.match.Battle;
+import com.pokemonbattlearena.android.engine.match.BattlePhase;
+import com.pokemonbattlearena.android.engine.match.BattlePhaseResult;
+
 /**
  * Created by nathan on 10/2/16.
  * Will edit and optimize once basic functionality is working.
@@ -29,14 +33,14 @@ public final class GameTree {
         return root == null;
     }
 
-    public DummyCommandResult getData(Node n) {
+    public Battle getData(Node n) {
         if (!isEmpty()) {
             return root.getValue();
         }
         return null;
     }
 
-    public void setData(DummyCommandResult res) {
+    public void setData(Battle res) {
         if(!isEmpty()){
             getRoot().setValue(res);
         }

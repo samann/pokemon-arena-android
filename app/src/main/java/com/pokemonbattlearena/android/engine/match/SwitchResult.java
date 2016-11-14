@@ -8,6 +8,10 @@ public class SwitchResult extends CommandResult {
 
     private int positionOfPokemon;
 
+    public SwitchResult(SwitchResult other) {
+        this.positionOfPokemon = other.positionOfPokemon;
+    }
+
     private SwitchResult(Builder builder) {
 
         super();
@@ -39,5 +43,10 @@ public class SwitchResult extends CommandResult {
             Log.i(TAG, "Building SwitchResult");
             return new SwitchResult(this);
         }
+    }
+
+    @Override
+    public CommandResult makeCopy() {
+        return new SwitchResult(this);
     }
 }

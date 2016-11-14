@@ -10,6 +10,14 @@ public class PokemonTeam {
     protected int size;
     protected List<Pokemon> pokemons;
 
+    public PokemonTeam(PokemonTeam other) {
+        this.size = other.size;
+        this.pokemons = new ArrayList<>();
+        for (Pokemon pokemon: other.getPokemons()) {
+            this.pokemons.add(new Pokemon(pokemon));
+        }
+    }
+
     public PokemonTeam(int size) {
         this.size = size;
         this.pokemons = new ArrayList<>(size);

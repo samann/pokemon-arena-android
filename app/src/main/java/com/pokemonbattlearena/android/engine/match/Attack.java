@@ -25,7 +25,13 @@ class Attack implements Command {
     private transient static RecoilCalculator recoilCalculator = RecoilCalculator.getInstance();
     private transient static StageChangeCalculator stageChangeCalculator = StageChangeCalculator.getInstance();
 
-    Attack(BattlePokemonPlayer attacker, BattlePokemonPlayer defender, Move move) {
+    public Attack(Attack other) {
+        this.move = new Move(other.move);
+        this.attackingPlayer = new BattlePokemonPlayer(other.attackingPlayer);
+        this.defendingPlayer = new BattlePokemonPlayer(other.defendingPlayer);
+    }
+
+    public Attack(BattlePokemonPlayer attacker, BattlePokemonPlayer defender, Move move) {
         this.attackingPlayer = attacker;
         this.defendingPlayer = defender;
         this.move = move;
@@ -162,5 +168,10 @@ class Attack implements Command {
         }
 
         return builder.build();
+    }
+
+    @Override
+    public Command makeCopy() {
+        return new Attack(this);
     }
 }

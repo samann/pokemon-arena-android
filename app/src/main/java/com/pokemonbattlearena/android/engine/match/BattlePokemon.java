@@ -5,6 +5,7 @@ import com.pokemonbattlearena.android.engine.database.Pokemon;
 import com.pokemonbattlearena.android.engine.database.StatType;
 import com.pokemonbattlearena.android.engine.database.StatusEffect;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BattlePokemon {
@@ -28,6 +29,30 @@ public class BattlePokemon {
     private transient int speedStage;
     private transient int critStage;
     private transient List<Move> moveSet;
+
+    public BattlePokemon(BattlePokemon other) {
+        this.originalPokemon = new Pokemon(other.originalPokemon);
+        this.currentHp = other.currentHp;
+        this.statusEffect = other.statusEffect;
+        this.statusEffectTurns = other.statusEffectTurns;
+        this.confused = other.confused;
+        this.confusedTurns = other.confusedTurns;
+        this.flinched = other.flinched;
+        this.chargingForTurns = other.chargingForTurns;
+        this.rechargingForTurns = other.rechargingForTurns;
+        this.fainted = other.fainted;
+        this.attackStage = other.attackStage;
+        this.defenseStage = other.defenseStage;
+        this.spAttackStage = other.spAttackStage;
+        this.spDefenseStage = other.spDefenseStage;
+        this.speedStage = other.speedStage;
+        this.critStage = other.critStage;
+
+        this.moveSet = new ArrayList<>();
+        for (Move move: other.moveSet) {
+            this.moveSet.add(new Move(move));
+        }
+    }
 
     public BattlePokemon(Pokemon pokemon) {
         this.originalPokemon = pokemon;

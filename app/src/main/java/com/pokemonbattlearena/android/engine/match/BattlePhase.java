@@ -47,7 +47,19 @@ public class BattlePhase {
         }
     };
 
-    BattlePhase(BattlePokemonPlayer player1, BattlePokemonPlayer player2) {
+    public BattlePhase(BattlePhase other) {
+        this.player1 = new BattlePokemonPlayer(other.player1);
+        this.player2 = new BattlePokemonPlayer(other.player2);
+        this.player1Ready = other.player1Ready;
+        this.player2Ready = other.player2Ready;
+        this.commands = new ArrayList<>();
+        for (Command command: other.commands) {
+           this.commands.add(command.makeCopy());
+        }
+        this.battlePhaseResult = new BattlePhaseResult(other.getBattlePhaseResult());
+    }
+
+    public BattlePhase(BattlePokemonPlayer player1, BattlePokemonPlayer player2) {
         this.player1 = player1;
         this.player2 = player2;
         this.player1Ready = false;
@@ -75,11 +87,11 @@ public class BattlePhase {
 
     public boolean queueAction(BattlePokemonPlayer attackingPlayer, BattlePokemonPlayer defendingPlayer, Move move) {
 
-        Log.i(TAG, "Queueing action (Move): " + move);
+     //   Log.i(TAG, "Queueing action (Move): " + move.getName());
 
         Attack attack = new Attack(attackingPlayer, defendingPlayer, move);
 
-        Log.i(TAG, "Adding Attack to command list");
+      //  Log.i(TAG, "Adding Attack to command list");
         this.commands.add(attack);
         setPlayerReady(attackingPlayer);
 
@@ -88,11 +100,11 @@ public class BattlePhase {
 
     public boolean queueAction(BattlePokemonPlayer attackingPlayer, int switchToPosition) {
 
-        Log.i(TAG, "Queueing action (Switch). Position to switch to: " + switchToPosition);
+      //  Log.i(TAG, "Queueing action (Switch). Position to switch to: " + switchToPosition);
 
         Switch aSwitch = new Switch(attackingPlayer, switchToPosition);
 
-        Log.i(TAG, "Adding Switch to command list");
+     //   Log.i(TAG, "Adding Switch to command list");
         this.commands.add(aSwitch);
         setPlayerReady(attackingPlayer);
 
@@ -101,10 +113,10 @@ public class BattlePhase {
 
     private void setPlayerReady(BattlePokemonPlayer player) {
 
-        Log.i(TAG, "Setting player ready");
+     //   Log.i(TAG, "Setting player ready");
 
         if(player.equals(player1)) {
-            Log.i(TAG, "Player 1 ready");
+     //       Log.i(TAG, "Player 1 ready");
             player1Ready = true;
         } else {
             Log.i(TAG, "Player 2 ready");
@@ -115,7 +127,7 @@ public class BattlePhase {
     private boolean isPhaseReady() {
 
         boolean ready = (player1Ready && player2Ready);
-        Log.i(TAG, "Is phase ready (both players ready): " + ready);
+     //   Log.i(TAG, "Is phase ready (both players ready): " + ready);
 
         return ready;
     }

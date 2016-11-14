@@ -7,6 +7,11 @@ class Switch implements Command {
     private BattlePokemonPlayer attackingPlayer;
     private int positionToSwitchTo;
 
+    public Switch(Switch other) {
+        this.attackingPlayer = new BattlePokemonPlayer(other.attackingPlayer);
+        this.positionToSwitchTo = other.positionToSwitchTo;
+    }
+
     Switch(BattlePokemonPlayer attacker, int positionToSwitchTo) {
         this.attackingPlayer = attacker;
         this.positionToSwitchTo = positionToSwitchTo;
@@ -21,5 +26,10 @@ class Switch implements Command {
         builder.setPositionOfPokemon(positionToSwitchTo);
 
         return builder.build();
+    }
+
+    @Override
+    public Command makeCopy() {
+        return new Switch(this);
     }
 }

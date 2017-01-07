@@ -28,9 +28,18 @@ public class AiPlayer extends PokemonPlayer {
     public void chooseTeam() {
         PokemonTeam tmp = new PokemonTeam(6);
 
-        for (int i = 0; i < 6; i++) {
-            int rnd = new Random().nextInt(db.getPokemons().size());
-            tmp.addPokemon(db.getPokemons().get(rnd));
+         for (int i = 0; i < 6; i++) {
+             int rnd = new Random().nextInt(db.getPokemons().size());
+             if (rnd == 9 || rnd == 10 || rnd == 12 || rnd == 13 || rnd == 128) {
+             rnd = new Random().nextInt(8);
+            }
+             tmp.addPokemon(db.getPokemons().get(rnd));
+        //tmp.addPokemon(db.getPokemons().get(5));
+        //tmp.addPokemon(db.getPokemons().get(2));
+        //tmp.addPokemon(db.getPokemons().get(0));
+        //tmp.addPokemon(db.getPokemons().get(3));
+        //tmp.addPokemon(db.getPokemons().get(6));
+          //tmp.addPokemon(db.getPokemons().get(8));
         }
         this.setPokemonTeam(tmp);
 
@@ -43,16 +52,18 @@ public class AiPlayer extends PokemonPlayer {
     }
 
     public void setMoves() {
-        //TODO Set moves for all Pokemon
-        Pokemon org = aiBattler.getBattlePokemonTeam().getCurrentPokemon().getOriginalPokemon();
-        List<Move> moves = new ArrayList<>(4);
 
-        for (int i = 0; i < 4; i++) {
-            int rnd = new Random().nextInt(db.getMovesForPokemon(org).size());
-            moves.add(i, db.getMovesForPokemon(org).get(rnd));
+        for (int i = 0; i < 6; i++) {
+            Pokemon org = aiBattler.getBattlePokemonTeam().getBattlePokemons().get(i).getOriginalPokemon();
+            List<Move> moves = new ArrayList<>(4);
+            for (int j = 0; j < 4; j++) {
+                int rnd = new Random().nextInt(db.getMovesForPokemon(org).size());
+                moves.add(db.getMovesForPokemon(org).get(rnd));
+            }
+            aiBattler.getBattlePokemonTeam().getBattlePokemons().get(i).setMoveSet(moves);
+            org.setActiveMoveList(moves);
+
         }
-
-        aiBattler.getBattlePokemonTeam().getCurrentPokemon().setMoveSet(moves);
     }
 
     public BattlePokemonPlayer getAiBattler() {

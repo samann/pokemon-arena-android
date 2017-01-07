@@ -2,6 +2,7 @@ package com.pokemonbattlearena.android.engine.match;
 
 import android.util.Log;
 
+import com.pokemonbattlearena.android.engine.database.Move;
 import com.pokemonbattlearena.android.engine.database.StatType;
 import com.pokemonbattlearena.android.engine.database.StatusEffect;
 
@@ -9,13 +10,19 @@ public class AttackResult extends CommandResult {
 
     private transient static final String TAG = AttackResult.class.getName();
 
-    private int moveUsedId;
+    private Move moveUsed;
 
+    private boolean moveHit;
     private int damageDone;
     private StatusEffect statusEffectApplied;
     private int statusEffectTurns;
+    private boolean succumbedToStatusEffect;
+    private boolean unfroze;
     private boolean confused;
     private int confusedTurns;
+    private int confusionDamageTaken;
+    private int burnDamageTaken;
+    private int poisonDamageTaken;
     private boolean flinched;
     private int chargingTurns;
     private int rechargingTurns;
@@ -35,13 +42,19 @@ public class AttackResult extends CommandResult {
         super();
 
         this.targetInfo = builder.targetInfo;
-        this.moveUsedId = builder.moveUsedId;
+        this.moveUsed = builder.moveUsed;
 
+        this.moveHit = builder.moveHit;
         this.damageDone = builder.damageDone;
         this.statusEffectApplied = builder.statusEffectApplied;
         this.statusEffectTurns = builder.statusEffectTurns;
+        this.succumbedToStatusEffect = builder.succumbedToStatusEffect;
+        this.unfroze = builder.unfroze;
         this.confused = builder.confused;
         this.confusedTurns = builder.confusedTurns;
+        this.confusionDamageTaken = builder.confusionDamageTaken;
+        this.burnDamageTaken = builder.burnDamageTaken;
+        this.poisonDamageTaken = builder.poisonDamageTaken;
         this.flinched = builder.flinched;
         this.chargingTurns = builder.chargingTurns;
         this.rechargingTurns = builder.rechargingTurns;
@@ -57,8 +70,12 @@ public class AttackResult extends CommandResult {
         this.isHaze = builder.isHaze;
     }
 
-    public int getMoveUsedId() {
-        return moveUsedId;
+    public Move getMoveUsed() {
+        return moveUsed;
+    }
+
+    public boolean isMoveHit() {
+        return moveHit;
     }
 
     public int getDamageDone() {
@@ -69,12 +86,32 @@ public class AttackResult extends CommandResult {
         return statusEffectApplied;
     }
 
+    public boolean isSuccumbedToStatusEffect() {
+        return succumbedToStatusEffect;
+    }
+
+    public boolean isUnfroze() {
+        return unfroze;
+    }
+
     public boolean isConfused() {
         return confused;
     }
 
     public int getConfusedTurns() {
         return confusedTurns;
+    }
+
+    public int getConfusionDamageTaken() {
+        return confusionDamageTaken;
+    }
+
+    public int getBurnDamageTaken() {
+        return burnDamageTaken;
+    }
+
+    public int getPoisonDamageTaken() {
+        return poisonDamageTaken;
     }
 
     public boolean isFlinched() {
@@ -136,13 +173,19 @@ public class AttackResult extends CommandResult {
     protected static class Builder {
 
         private TargetInfo targetInfo;
-        private int moveUsedId;
+        private Move moveUsed;
 
+        private boolean moveHit;
         private int damageDone;
         private StatusEffect statusEffectApplied;
         private int statusEffectTurns;
+        private boolean succumbedToStatusEffect;
+        private boolean unfroze;
         private boolean confused;
         private int confusedTurns;
+        private int confusionDamageTaken;
+        private int burnDamageTaken;
+        private int poisonDamageTaken;
         private boolean flinched;
         private int chargingTurns;
         private int rechargingTurns;
@@ -157,9 +200,13 @@ public class AttackResult extends CommandResult {
         private int critStageChange;
         private boolean isHaze;
 
-        protected Builder(TargetInfo targetInfo, int moveUsedId) {
+        protected Builder(TargetInfo targetInfo, Move moveUsed) {
             this.targetInfo = targetInfo;
-            this.moveUsedId = moveUsedId;
+            this.moveUsed = moveUsed;
+        }
+
+        public void setMoveHit(boolean moveHit) {
+            this.moveHit = moveHit;
         }
 
         protected Builder setDamageDone(int damageDone) {
@@ -177,6 +224,16 @@ public class AttackResult extends CommandResult {
             return this;
         }
 
+        protected Builder setSuccumbedToStatusEffect(boolean succumbedToStatusEffect) {
+            this.succumbedToStatusEffect = succumbedToStatusEffect;
+            return this;
+        }
+
+        protected Builder setUnfroze(boolean unfroze) {
+            this.unfroze = unfroze;
+            return this;
+        }
+
         protected Builder setConfused(boolean confused) {
             this.confused = confused;
             return this;
@@ -185,6 +242,27 @@ public class AttackResult extends CommandResult {
         protected Builder setConfusedTurns(int confusedTurns) {
             this.confusedTurns = confusedTurns;
             return this;
+        }
+
+        protected Builder setConfusionDamageTaken(int confusionDamageTaken) {
+            this.confusionDamageTaken = confusionDamageTaken;
+            return this;
+        }
+
+        public int getBurnDamageTaken() {
+            return burnDamageTaken;
+        }
+
+        public void setBurnDamageTaken(int burnDamageTaken) {
+            this.burnDamageTaken = burnDamageTaken;
+        }
+
+        public int getPoisonDamageTaken() {
+            return poisonDamageTaken;
+        }
+
+        public void setPoisonDamageTaken(int poisonDamageTaken) {
+            this.poisonDamageTaken = poisonDamageTaken;
         }
 
         protected Builder setFlinched(boolean flinched) {

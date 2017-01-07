@@ -11,6 +11,7 @@ import com.pokemonbattlearena.android.engine.database.StatusEffect;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class Battle {
@@ -18,25 +19,31 @@ public class Battle {
     private transient static final String TAG = Battle.class.getName();
 
     // NOTE: self is always the host of the battle
-    static BattlePokemonPlayer self;
-    static BattlePokemonPlayer opponent;
-    List<BattlePhase> finishedBattlePhases;
+    BattlePokemonPlayer self;
+    BattlePokemonPlayer opponent;
+    List<BattlePhase> finishedBattlePhases = new ArrayList<>();
     transient BattlePhase currentBattlePhase;
     transient boolean isFinished;
 
     public Battle() {
     }
 
-    public Battle(PokemonPlayer player1, PokemonPlayer player2) {
-        this.self = new BattlePokemonPlayer(player1);
-        if (player2 instanceof AiPlayer) {
-            this.opponent = ((AiPlayer) player2).getAiBattler();
-        } else {
-            this.opponent = new BattlePokemonPlayer(player2);
-        }
+    protected Battle(PokemonPlayer player1, PokemonPlayer player2) {
+        this(
+                new BattlePokemonPlayer(player1),
+                (player2 instanceof  AiPlayer ? ((AiPlayer) player2).getAiBattler() : new BattlePokemonPlayer(player2))
+        );
+    }
 
-        this.finishedBattlePhases = new ArrayList<>();
+    //AI is always opponent.
+    public Battle(BattlePokemonPlayer self, BattlePokemonPlayer opponent) {
+        this.self = self;
+        this.opponent = opponent;
         this.currentBattlePhase = new BattlePhase(self, opponent);
+    }
+
+    public static Battle createBattle(PokemonPlayer player1, PokemonPlayer player2) {
+        return new Battle (player1, player2);
     }
 
 
@@ -62,8 +69,6 @@ public class Battle {
 
     private void setFinished() {
         isFinished = self.getBattlePokemonTeam().allFainted() || opponent.getBattlePokemonTeam().allFainted();
-        //TODO Remove this as this is for the 1v1 Pokemon Scenario
-        isFinished = self.getBattlePokemonTeam().getCurrentPokemon().isFainted() || opponent.getBattlePokemonTeam().getCurrentPokemon().isFainted();
     }
 
     public void startNewBattlePhase() {
@@ -75,35 +80,104 @@ public class Battle {
         currentBattlePhase = new BattlePhase(self, opponent);
     }
 
+    /*
+     * A custom Comparator to determine the order of commands (player actions).
+     * Pokemon switching always occurs first. Attack order is determined by the
+     * Pokemon's speed - the faster Pokemon attacks first. However, some moves
+     * such as Quick Attack will give the attacker priority in the queue.
+     */
+    private transient Comparator<Command> commandComparator = new Comparator<Command>() {
+        @Override
+        public int compare(Command c1, Command c2) {
+
+            // Pokemon switching always happens first
+            if (c1 instanceof Switch ) {
+                return Integer.MIN_VALUE;
+            }
+            else if (c2 instanceof Switch) {
+                return Integer.MAX_VALUE;
+            } else if (c1 instanceof NoP|| c2 instanceof NoP) {
+                return Integer.MAX_VALUE;
+            }
+
+            Attack a1 = (Attack) c1;
+            Attack a2 = (Attack) c2;
+            int pokemon1Speed = a1.getAttackingPokemon(Battle.this).getOriginalPokemon().getSpeed();
+            int pokemon2Speed = a2.getAttackingPokemon(Battle.this).getOriginalPokemon().getSpeed();
+            Log.i(TAG, "Pokemon 1 speed: " + pokemon1Speed + " || Pokemon 2 speed: " + pokemon2Speed);
+
+            return pokemon2Speed - pokemon1Speed;
+        }
+    };
+
+
     public BattlePhaseResult executeCurrentBattlePhase() {
 
         Log.i(TAG, "Executing current battle phase from Battle");
 
         Log.i(TAG, "Sorting commands by priority");
-        Collections.sort(currentBattlePhase.getCommands(), BattlePhase.getCommandComparator());
+        Collections.sort(currentBattlePhase.getCommands(), commandComparator);
         BattlePhaseResult battlePhaseResult = new BattlePhaseResult();
+        CommandResult commandResult;
+        boolean skipFaintedPokemon = false;
+
+        verifySwitchAttack();
 
         for (Command command : currentBattlePhase.getCommands()) {
-            Log.i(TAG, "Executing command of type: " + command.getClass());
+            if (!isFinished()) {
+                Log.i(TAG, "Executing command of type: " + command.getClass());
+                if (command instanceof NoP) {
+                    commandResult = command.execute(this);
+                }
+                if (command instanceof Switch) {
+                    commandResult = command.execute(this);
+                } else {
+                    commandResult = command.execute(this);
+                }
 
-            CommandResult commandResult = command.execute();
+                if (commandResult instanceof AttackResult) {
+                    if (skipFaintedPokemon) {
+                        Log.i(TAG, "Attacking Pokemon is fainted, do not add its attack");
+                    } else if (((AttackResult) commandResult).isFainted() && !skipFaintedPokemon) {
+                        skipFaintedPokemon = true;
+                        Log.i(TAG, "Adding command result to battle phase result");
+                        battlePhaseResult.addCommandResult(commandResult);
+                    } else {
+                        battlePhaseResult.addCommandResult(commandResult);
+                    }
+                } else {
+                    battlePhaseResult.addCommandResult(commandResult);
+                }
 
-            Log.i(TAG, "Adding command result to battle phase result");
-            battlePhaseResult.addCommandResult(commandResult);
+                Log.i(TAG, "Checking if battle is finished");
+                setFinished();
+            }
         }
 
         Log.i(TAG, "Setting battle phase result on current battle phase");
         currentBattlePhase.setBattlePhaseResult(battlePhaseResult);
 
-        Log.i(TAG, "Setting finished");
-        setFinished();
         Log.i(TAG, "Battle finished? " + isFinished);
 
         return battlePhaseResult;
     }
 
+    private void verifySwitchAttack() {
+        if (currentBattlePhase.getCommands().get(0) instanceof Switch) {
+            if (!(currentBattlePhase.getCommands().get(1) instanceof Switch)) {
+                Switch switchAction = (Switch)currentBattlePhase.getCommands().get(0);
+                Log.i(TAG, "Pokemon on Deck: " + switchAction.pokemonSwitchingTo(this));
+                int indexOfDefender = switchAction.getPositionToSwitchTo();
+                switchAction.getAttackingBattlePlayer(this).getBattlePokemonTeam().setPokemonOnDeck(indexOfDefender);
+            }
+        }
+    }
+
     public void applyCommandResult(CommandResult commandResult) {
 
+        if (commandResult instanceof NoPResult) {
+            return;
+        }
         if (commandResult instanceof AttackResult) {
             Log.i(TAG, "Applying command result of type AttackResult");
             applyAttackResult((AttackResult) commandResult);
@@ -126,16 +200,84 @@ public class Battle {
         BattlePokemonPlayer defendingPlayer = getPlayerFromId(defendingPlayerId);
         BattlePokemon defendingPokemon = defendingPlayer.getBattlePokemonTeam().getCurrentPokemon();
 
+
+        // Log the important things for the user
+        Pokemon attackingOriginal = attackingPokemon.getOriginalPokemon();
+        Pokemon defendingOriginal = defendingPokemon.getOriginalPokemon();
+        res.appendToLog(attackingOriginal.getName() + " used " + res.getMoveUsed().getName());
+
+        if (!res.isMoveHit()) {
+            res.appendToLog(attackingOriginal.getName() + "'s attack missed!");
+        }
+
+        if (res.isFlinched()) {
+            res.appendToLog(attackingOriginal.getName() + " flinched!");
+        }
+        else if (res.isSuccumbedToStatusEffect()) {
+            res.appendToLog(attackingOriginal.getName() + " succumbed to " + attackingPokemon.getStatusEffect());
+        }
+
+        if (res.getConfusionDamageTaken() > 0) {
+            res.appendToLog(attackingOriginal.getName() + " is confused. It hurt itself in confusion for " + res.getConfusionDamageTaken() + " damage");
+        }
+
+        if (!res.isSuccumbedToStatusEffect() && res.getDamageDone() > 0) {
+            res.appendToLog(attackingOriginal.getName() + " did " + res.getDamageDone() + " damage");
+        }
+
+        if (res.getStatusEffectApplied() != null) {
+            res.appendToLog(defendingOriginal.getName() + " had "  + res.getStatusEffectApplied() + " applied to it");
+        }
+
+        if (res.isConfused()) {
+            res.appendToLog(defendingOriginal.getName() + " had confusion applied to it");
+        }
+
+        if (res.getHealingDone() > 0) {
+            res.appendToLog(attackingOriginal.getName() + " healed itself for " + res.getHealingDone() + " HP");
+        }
+
+        if (res.getRecoilTaken() > 0 ) {
+            res.appendToLog(attackingOriginal.getName() + " took " + res.getRecoilTaken() + " recoil damage");
+        }
+
+        if (res.getBurnDamageTaken() > 0) {
+            res.appendToLog(attackingOriginal.getName() + " took " + res.getBurnDamageTaken() + " burn damage");
+        }
+
+        if (res.getPoisonDamageTaken() > 0) {
+            res.appendToLog(attackingOriginal.getName() + " took " + res.getPoisonDamageTaken() + " poison damage");
+        }
+
         Log.i(TAG, "Attacking player: " + attackingPlayerId);
         Log.i(TAG, "Attacking player pkmn: " + attackingPokemon.getOriginalPokemon().getName());
         Log.i(TAG, "Defending player ID: " + defendingPlayer.getId() + "Defending ID: " + defendingPlayerId);
         Log.i(TAG, "Defending player pkmn: " + defendingPokemon.getOriginalPokemon().getName());
+
+        if (res.isSuccumbedToStatusEffect()) {
+            Log.i(TAG, attackingPokemon.getOriginalPokemon().getName() + " succumbed to " + attackingPokemon.getStatusEffect());
+            return;
+        }
+
+        if (res.isUnfroze()) {
+            Log.i(TAG, attackingPokemon.getOriginalPokemon().getName() + " unfroze!");
+            attackingPokemon.setStatusEffect(null);
+            attackingPokemon.setStatusEffectTurns(0);
+        }
+
+        Log.i(TAG, "Move hit: " + res.isMoveHit());
+
+        if (!res.isMoveHit()) {
+            Log.i(TAG, "Move missed!");
+             return;
+        }
 
         int damageDone = res.getDamageDone();
         StatusEffect statusEffectApplied = res.getStatusEffectApplied();
         int statusEffectTurns = res.getStatusEffectTurns();
         boolean confused = res.isConfused();
         int confusedTurns = res.getConfusedTurns();
+        int confusionDamageTaken = res.getConfusionDamageTaken();
         boolean flinched = res.isFlinched();
         int chargingTurns = res.getChargingTurns();
         int rechargingTurns = res.getRechargingTurns();
@@ -159,6 +301,9 @@ public class Battle {
             defendingPokemon.setConfused(confused);
             defendingPokemon.setConfusedTurns(confusedTurns);
         }
+
+        Log.i(TAG, "Pokemon hurt itself in confusion? Damage taken: " + confusionDamageTaken);
+        attackingPokemon.setCurrentHp(attackingPokemon.getCurrentHp() - confusionDamageTaken);
 
         Log.i(TAG, "Applying flinch: " + flinched);
         defendingPokemon.setFlinched(flinched);
@@ -188,7 +333,7 @@ public class Battle {
         }
 
         Log.i(TAG, "Applying recoil taken: " + recoilTaken);
-        attackingPokemon.setCurrentHp(currentHp - recoilTaken);
+        attackingPokemon.setCurrentHp(attackingPokemon.getCurrentHp() - recoilTaken);
 
         int attackStage = res.getAttackStageChange();
         int defenseStage = res.getDefenseStageChange();
@@ -265,12 +410,60 @@ public class Battle {
             defendingPokemon.setCritStage(defendingPokemon.getCritStage() + (defendingPokemon.getCritStage() * (-1)));
         }
 
-        boolean attackerFainted = attackingPokemon.getCurrentHp() <= 0;
-        boolean defenderFainted = defendingPokemon.getCurrentHp() <= 0;
+        decrementStatusEffectTurns(attackingPokemon);
+        decrementStatusEffectTurns(defendingPokemon);
+        applyStatusEffectDamage(attackingPokemon, res);
+        applyStatusEffectDamage(defendingPokemon, res);
+        applyFainting(attackingPokemon);
+        applyFainting(defendingPokemon);
 
-        Log.i(TAG, "Applying fainted status. Attacker fainted? " + attackerFainted + " || defender fainted? " + defenderFainted);
-        attackingPokemon.setFainted(attackerFainted);
-        defendingPokemon.setFainted(defenderFainted);
+        if (attackingPokemon.isFainted()) {
+            res.appendToLog(attackingOriginal.getName() + " fainted");
+        }
+
+        if (defendingPokemon.isFainted()) {
+            res.appendToLog(defendingOriginal.getName() + " fainted");
+        }
+    }
+
+    private void decrementStatusEffectTurns(BattlePokemon pokemon) {
+
+        Log.i(TAG, "Decrementing status effect and confusion turns and resolving those states for: " + pokemon.getOriginalPokemon().getName());
+
+        pokemon.setStatusEffectTurns(pokemon.getStatusEffectTurns() - 1);
+        pokemon.setConfusedTurns(pokemon.getConfusedTurns() - 1);
+
+        if (pokemon.getStatusEffectTurns() <= 0) {
+            pokemon.setStatusEffect(null);
+        }
+        if (pokemon.getConfusedTurns() <= 0) {
+            pokemon.setConfused(false);
+        }
+    }
+
+    private void applyStatusEffectDamage(BattlePokemon pokemon, AttackResult result) {
+
+        int burnDamage = result.getBurnDamageTaken();
+        int poisonDamage = result.getPoisonDamageTaken();
+
+        if (pokemon.getStatusEffect() == StatusEffect.BURN) {
+            Log.i(TAG, "Pokemon " + pokemon.getOriginalPokemon().getName() + " took " + burnDamage + " burn damage");
+            pokemon.setCurrentHp(pokemon.getCurrentHp() - burnDamage);
+        }
+
+        if (pokemon.getStatusEffect() == StatusEffect.POISON) {
+            Log.i(TAG, "Pokemon " + pokemon.getOriginalPokemon().getName() + " took " + poisonDamage + " poison damage");
+
+            pokemon.setCurrentHp(pokemon.getCurrentHp() - poisonDamage);
+        }
+    }
+
+    private void applyFainting(BattlePokemon pokemon) {
+
+        boolean attackerFainted = pokemon.getCurrentHp() <= 0;
+
+        Log.i(TAG, "Applying fainted status. Pokemon fainted? " + attackerFainted);
+        pokemon.setFainted(attackerFainted);
     }
 
     private void applySwitchResult(SwitchResult res) {
@@ -286,7 +479,7 @@ public class Battle {
         attackingPlayer.getBattlePokemonTeam().switchPokemonAtPosition(res.getPositionOfPokemon());
     }
 
-    public static BattlePokemonPlayer getPlayerFromId(String id) {
+    public BattlePokemonPlayer getPlayerFromId(String id) {
 
         if (self.getId().equals(id)) {
             return self;
@@ -302,5 +495,23 @@ public class Battle {
 
     public boolean selfPokemonFainted() {
         return self.getBattlePokemonTeam().getCurrentPokemon().isFainted();
+    }
+
+    public String getBattleLog() {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (BattlePhase battlePhase : finishedBattlePhases) {
+
+            BattlePhaseResult battlePhaseResult = battlePhase.getBattlePhaseResult();
+
+            for (CommandResult commandResult : battlePhaseResult.getCommandResults()) {
+                sb.append(commandResult.getLog() + "\n");
+            }
+
+            sb.append("\n");
+        }
+
+        return sb.toString();
     }
 }

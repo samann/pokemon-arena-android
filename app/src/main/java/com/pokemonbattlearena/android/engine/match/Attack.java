@@ -31,9 +31,7 @@ public class Attack extends Command {
         this.move = move;
     }
 
-    protected Move getMove() {
-        return move;
-    }
+    public Move getMove() { return move; }
 
     public BattlePokemonPlayer getAttackingPlayer() {
         return attackingPlayer;
@@ -45,33 +43,31 @@ public class Attack extends Command {
 
 
     /*
-     * TODO: these getters use a filthy hack to get the Java object from the player's
      * id. When serializing and sending a Command, the player's team info is lost (as
      * the host, who has access to the actual objects, would be the one queueing commands).
      * I can't think of a better way to do it though, because allowing consumers of the
      * Battle Engine to create Command themselves cleans up the logic in the BE quite a bit.
+     *
+     * Fixed by giving an instance of battle where it is needed
      */
-    protected BattlePokemon getAttackingPokemon() {
+    protected BattlePokemon getAttackingPokemon(Battle battle) {
 
-        // TODO: Clean up this stupid, dirty hack
-        return Battle.getPlayerFromId(attackingPlayer.getId()).getBattlePokemonTeam().getCurrentPokemon();
+        return battle.getPlayerFromId(attackingPlayer.getId()).getBattlePokemonTeam().getCurrentPokemon();
     }
 
-    protected BattlePokemon getDefendingPokemon() {
+    protected BattlePokemon getDefendingPokemon(Battle battle) {
 
-        // TODO: Clean up this stupid, dirty hack
-        return Battle.getPlayerFromId(defendingPlayer.getId()).getBattlePokemonTeam().getCurrentPokemon();
+        return battle.getPlayerFromId(defendingPlayer.getId()).getBattlePokemonTeam().getPokemonOnDeck();
     }
-
 
     @Override
-    public AttackResult execute() {
+    public AttackResult execute(Battle battle) {
 
-        BattlePokemon attackingPokemon = getAttackingPokemon();
-        BattlePokemon defendingPokemon = getDefendingPokemon();
+        BattlePokemon attackingPokemon = getAttackingPokemon(battle);
+        BattlePokemon defendingPokemon = getDefendingPokemon(battle);
         TargetInfo targetInfo =
                 new TargetInfo(attackingPlayer, defendingPlayer, attackingPokemon, defendingPokemon);
-        AttackResult.Builder builder = new AttackResult.Builder(targetInfo, move.getId());
+        AttackResult.Builder builder = new AttackResult.Builder(targetInfo, move);
 
         if (move.isChargingMove()) {
             Log.i(TAG, move.getName() + " is charging move (for " + move.getChargingTurns() + " turns)");
@@ -82,6 +78,37 @@ public class Attack extends Command {
             Log.i(TAG, move.getName() + " is recharge move (for " + move.getRechargeTurns() + " turns)");
             builder.setRechargingTurns(move.getRechargeTurns());
         }
+
+        // If a Pokemon is affected by a status effect, finish the attack
+        boolean frozen = statusEffectCalculator.isAffectedByFreeze(attackingPokemon);
+        boolean paralyzed = statusEffectCalculator.isAffectedByParalysis(attackingPokemon);
+        boolean sleeping = statusEffectCalculator.isAffectedBySleep(attackingPokemon);
+
+        // If the Pokemon is not affected by the freeze, it means it unfroze
+        if (attackingPokemon.getStatusEffect() == StatusEffect.FREEZE && !frozen) {
+            builder.setUnfroze(true);
+        }
+
+        if (attackingPokemon.isFlinched() || frozen || paralyzed || sleeping) {
+            builder.setSuccumbedToStatusEffect(true);
+        }
+
+        // If a Pokemon is confused, see if it hurts itself and finish the attack
+        if (attackingPokemon.isConfused()) {
+            if (statusEffectCalculator.isHurtByConfusion()) {
+                builder.setConfusionDamageTaken(statusEffectCalculator.getConfusionDamage(attackingPokemon));
+            }
+        }
+
+        if (attackingPokemon.getStatusEffect() == StatusEffect.BURN) {
+            builder.setBurnDamageTaken(statusEffectCalculator.getBurnDamage(attackingPokemon));
+        }
+        if (attackingPokemon.getStatusEffect() == StatusEffect.POISON) {
+            builder.setPoisonDamageTaken(statusEffectCalculator.getPoisonDamage(attackingPokemon));
+        }
+
+        // Set whether or not the move hit
+        builder.setMoveHit(damageCalculator.moveHit(move));
 
         int damageDone = 0;
         for (int i = 0; i < damageCalculator.getTimesHit(move); i++) {
